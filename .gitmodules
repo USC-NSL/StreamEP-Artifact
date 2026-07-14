@@ -1,0 +1,3 @@
+[submodule "StreamInfer"]
+	path = StreamInfer
+	url = https://github.com/USC-NSL/StreamInfer.git
