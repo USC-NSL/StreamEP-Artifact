@@ -44,8 +44,10 @@ bash experiment_utils/throughput-itl/run_head_sglang.sh
 
 ```bash
 # on the head node — sgpu6
+cd ~/StreamEP-Artifact
 bash experiment_utils/throughput-itl/run_head_streaminfer.sh
 # on each worker — run on sgpu7, sgpu8 and sgpu9 separately
+cd ~/StreamEP-Artifact
 bash experiment_utils/throughput-itl/run_worker_streaminfer.sh
 ```
 
