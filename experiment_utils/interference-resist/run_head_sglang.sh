@@ -117,7 +117,10 @@ for COND in $CONDITIONS; do
       log "  server ready; starting interference + benchmarking ${RATE} rps ..."
       iface_start "$COND" "$run_dir/interference.log" || log "  (interference start issue; continuing)"
       if run_benchmark "$run_dir/result.json" && grep -q output_throughput "$run_dir/result.json" 2>/dev/null; then
-        log "  OK: $(grep -oE '"(output_throughput|mean_itl_ms)": *[0-9.]+' "$run_dir/result.json" | tr '\n' ' ')"
+        # report the SERVER-side averages (Detokenizer Manager 10s windows) — the
+        # client-side result.json numbers deviate under overload; parse_results.py
+        # uses the same server-log averages for the final table.
+        log "  OK: $(awk '/from Detokenizer Manager/ && match($0,/Throughput: [0-9.]+/){t=substr($0,RSTART+12,RLENGTH-12); if(match($0,/ITL mean=[0-9.]+/)){st+=t; si+=substr($0,RSTART+9,RLENGTH-9); n++}} END{if(n) printf "server-log avg (%d windows): tput=%.0f tok/s, itl_mean=%.1f ms", n, st/n, si/n; else print "no Detokenizer lines parsed (see server_head.log)"}' "$run_dir/server_head.log")"
         iface_report || true
         iface_stop; ok=1; break
       fi

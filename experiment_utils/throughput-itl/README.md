@@ -14,8 +14,8 @@ Both run gpt-oss on **dummy weights** (no checkpoints) with the layer count cut 
 
 > Scaled-down reproduction of the paper's 16-GPU sweep — see
 > [What was scaled down](#what-was-scaled-down). At this scale the result is clear:
-> StreamInfer sustains throughput scaling with bounded latency, while sglang's
-> throughput peaks near 100 rps and then *collapses* under overload.
+> StreamInfer sustains throughput scaling, while sglang's
+> throughput peaks near 100 rps and then collapses under overload.
 
 ---
 
@@ -43,9 +43,9 @@ bash experiment_utils/throughput-itl/run_head_sglang.sh
 ### 2 · StreamInfer — head + one command on each worker node
 
 ```bash
-# head — sgpu6
+# on the head node — sgpu6
 bash experiment_utils/throughput-itl/run_head_streaminfer.sh
-# workers — run on sgpu7, sgpu8 and sgpu9 (each in a shell on that node)
+# on each worker — run on sgpu7, sgpu8 and sgpu9 separately
 bash experiment_utils/throughput-itl/run_worker_streaminfer.sh
 ```
 

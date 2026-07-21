@@ -29,14 +29,32 @@ def parse_streaminfer(path):
     return dict(tput=tput, itl_mean=g(r"itl_latency_mean:\s*([0-9.]+)\s*ms"),
                 itl_p99=g(r"itl_latency_p99:\s*([0-9.]+)\s*ms"))
 
+# server-side per-10s stats line, e.g.:
+# [ts] from Detokenizer Manager, Throughput: 24320.7 tokens/s, In-flight requests: 2495,
+#   Waiting requests: 0, ITL mean=104.38 ms, median=104.48 ms, p99=292.87 ms, samples=240349
+_DETOK_RE = re.compile(
+    r"from Detokenizer Manager,\s*Throughput:\s*([0-9.]+)\s*tokens/s.*?"
+    r"ITL mean=([0-9.]+)\s*ms,\s*median=[0-9.]+\s*ms,\s*p99=([0-9.]+)\s*ms")
+
 def parse_sglang(path):
+    # result.json (bench_serving client) gates on "the run completed", but the metrics
+    # come from the SERVER's Detokenizer Manager lines: under overload the client-side
+    # ITL/throughput also count detokenizer->client delivery stalls and drain time, and
+    # deviate from what the server actually sustained. Average every parsable line;
+    # itl_p99 is the mean of the per-window p99s, not a whole-run p99.
     try: d = json.load(open(path))
     except Exception: return None
     if not isinstance(d, dict) or "output_throughput" not in d: return None
     def f(k):
         try: return float(d.get(k))
         except Exception: return None
-    return dict(tput=f("output_throughput"), itl_mean=f("mean_itl_ms"), itl_p99=f("p99_itl_ms"))
+    client = dict(tput=f("output_throughput"), itl_mean=f("mean_itl_ms"), itl_p99=f("p99_itl_ms"))
+    try: log_txt = open(os.path.join(os.path.dirname(path), "server_head.log"), errors="ignore").read()
+    except FileNotFoundError: return client
+    windows = [tuple(map(float, m)) for m in _DETOK_RE.findall(log_txt)]
+    if not windows: return client
+    def avg(i): return sum(w[i] for w in windows) / len(windows)
+    return dict(tput=avg(0), itl_mean=avg(1), itl_p99=avg(2))
 
 # keys must match the results sub-dirs written by run_head_*.sh (streaminfer / sglang);
 # "sglang EP" is only the display label.
